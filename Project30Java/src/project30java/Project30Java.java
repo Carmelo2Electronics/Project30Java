@@ -91,7 +91,7 @@ class Panel extends JPanel implements ActionListener{
 	private int port=9999;
 	private JMenuBar menuBar = new JMenuBar();;
 	private JMenu menu = new JMenu(" Setting ");; 
-	private JMenu submenu = new JMenu("Thresholds value for sending email alerts");
+	private JMenu submenu = new JMenu("Correct working interval (without alarm imail)");
 	private JMenuItem menuItem;
 	private String StringItem;	
 	private JTextArea jTextArea=new JTextArea(15,100);
@@ -295,11 +295,11 @@ class Panel extends JPanel implements ActionListener{
 			jTextArea.append("Address to receive emails: " + theMyObject + "\n");
 		}	
 		if(MinValue != -9999999) {
-			jTextArea.append("Thresholds value for sending email alerts. MinValue: " + MinValue +"\n");
+			jTextArea.append("Correct working interval. MinValue: " + MinValue +"\n");
 		}	
 		
 		if(MaxValue != -9999999) {
-			jTextArea.append("Thresholds value for sending email alerts. MaxValue: " + MaxValue +"\n");
+			jTextArea.append("Correct working interval. MaxValue: " + MaxValue +"\n");
 		}		
 		if(samples.getStringTimeUnit() != null && samples.getValor() !=0) {
 			jTextArea.append("Take a sample each : " + samples.getValor() + "    " + samples.getStringTimeUnit()  +"\n");
@@ -338,13 +338,13 @@ class Panel extends JPanel implements ActionListener{
 			r[2]=true;
 		}	
 		if( MinValue==-9999999) {
-			jTextArea.append("Thresholds min value" +"\n");
+			jTextArea.append("Correct working interval. MinValue" +"\n");
 			r[4]=false;
 		}else {
 			r[4]=true;
 		}		
 		if( MaxValue==-9999999) {
-			jTextArea.append("Thresholds max value" +"\n");
+			jTextArea.append("Correct working interval. MaxValue" +"\n");
 			r[3]=false;
 		}else {
 			r[3]=true;
@@ -580,7 +580,7 @@ class Executor {
 			ValueLabel.setText("Value: " + value);			
 			return value;		
 		}else {
-			double value=100000;
+			double value=100;
 			ValueLabel.setText("Value: " + value);
 			return 100;
 		}
@@ -596,7 +596,7 @@ class Executor {
 				e.printStackTrace();
 			}						
 			try {
-				if( ((int)(getReadThermocoupleValue())) > MinValue && ((int)(getReadThermocoupleValue())) < MaxValue) {					
+				if( ((int)(getReadThermocoupleValue())) <= MinValue || ((int)(getReadThermocoupleValue())) >= MaxValue) {					
 					cont++;
 					if(cont==1) {
 						sendAlert();
