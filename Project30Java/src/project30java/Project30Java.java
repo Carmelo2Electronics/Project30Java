@@ -2,59 +2,24 @@
 package project30java;
 
 import java.awt.Color;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.awt.event.*;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
+import java.util.*;
+import java.util.concurrent.*;
 import javax.mail.*;
 import javax.mail.internet.*;
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-
-import com.pi4j.io.spi.SpiChannel;
-import com.pi4j.io.spi.SpiDevice;
-import com.pi4j.io.spi.SpiFactory;
-
+import javax.swing.*;
+import javax.swing.event.*;
+import com.pi4j.io.spi.*;
 import javax.activation.*;
 
 //kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
 public class Project30Java  {
     public static void main(String[] args) throws IOException, URISyntaxException {
-
-    	new MakeFolder();
-    	
+    	new MakeFolder();  	
 		Frame frame=new Frame();
 		frame.setVisible(true);
     }
@@ -73,7 +38,7 @@ class Frame extends JFrame{
 		setResizable(false);				
 		addWindowListener(new WindowAdapter() {							
 	        public void windowClosing(WindowEvent event) {
-	    		int opcion=JOptionPane.showConfirmDialog(null, "You want to close the entire program", "CONFIRMATION", JOptionPane.OK_CANCEL_OPTION);
+	    		int opcion=JOptionPane.showConfirmDialog(null, "Do you want to close the program?", "CONFIRMATION", JOptionPane.OK_CANCEL_OPTION);
 	    		if(opcion==0) {
 	    			System.exit(0);	    			
 	    		}
@@ -90,8 +55,8 @@ class Panel extends JPanel implements ActionListener{
 	private static final long serialVersionUID = 1L;
 	private int port=9999;
 	private JMenuBar menuBar = new JMenuBar();;
-	private JMenu menu = new JMenu(" Setting ");; 
-	private JMenu submenu = new JMenu("Correct working interval (without alarm imail)");
+	private JMenu menu = new JMenu(" Settings ");; 
+	private JMenu submenu = new JMenu("Safe working interva");
 	private JMenuItem menuItem;
 	private String StringItem;	
 	private JTextArea jTextArea=new JTextArea(15,100);
@@ -104,50 +69,58 @@ class Panel extends JPanel implements ActionListener{
 	private List <String> ToList = new ArrayList <String> ();	
 	private int MaxValue=-9999999;
 	private int MinValue=-9999999;
-	private PopupWindows samples;			
+	private PopupWindows samples;
+	private String samplesUnit;
+	private int samplesValor;
 	private PopupWindows file;
+	private String fileUnit;
+	private int fileValor;
 	private PopupWindows alert;
+	private String alertUnit;
+	private int alertValor;
 	private boolean flagONOFF=true;
 	private boolean flagReviewSettings=false;	
 	private boolean r[]=new boolean[8];
 	private Host host;
 	private Executor executor=null;
 	private MakeFile makeFile;
-
+	private List <String> dataUsersLoad = new ArrayList <String> ();
+	private List <String> dataUsersSave = new ArrayList <String> ();
+	
 	public Panel() throws IOException, URISyntaxException {
 		
 		host=new Host(port);
 		makeFile=new MakeFile();
 		
+		loadDataUsers();
+		
 		jTextArea.setEditable(false);
-			
-		String string100 = null;
-		int inter100 = 0;		
-		int[] bounds100={40, 40, 600, 80};
-		samples = new PopupWindows(bounds100, "SAMPLES", string100 ,inter100);		
+		
+		int[] bounds100={40, 40, 600, 80};		//hago los objetos con los valores leidos en loadDataUsers()
+		samples = new PopupWindows(bounds100, "SAMPLES", samplesUnit, samplesValor);		
 		int[] bounds200={60, 60, 600, 80};	
-		file = new PopupWindows(bounds200, "FILE", string100 ,inter100);		
+		file = new PopupWindows(bounds200, "FILE", fileUnit , fileValor);		
 		int[] bounds300={80, 80, 600, 80};
-		alert= new PopupWindows(bounds300, "ALERTS", string100 ,inter100);
+		alert= new PopupWindows(bounds300, "ALERTS", alertUnit, alertValor);
 		
 		setLayout(null);
 		
 		menuBar.add(menu);
-		menuItem = new JMenuItem("Sending mail"); menuItem.addActionListener(this); menu.add(menuItem);									//1	
-		menuItem = new JMenuItem("Password sending email"); menuItem.addActionListener(this); menu.add(menuItem);						//2
+		menuItem = new JMenuItem("Send e-mail from:"); menuItem.addActionListener(this); menu.add(menuItem);									//1	
+		menuItem = new JMenuItem("E-mail password (sending account):"); menuItem.addActionListener(this); menu.add(menuItem);					//2
 		menu.addSeparator();
-		menuItem = new JMenuItem("Add email addresses to receive emails"); menuItem.addActionListener(this); menu.add(menuItem);		//3
-		menuItem = new JMenuItem("Delete email addresses to receive emails"); menuItem.addActionListener(this); menu.add(menuItem);		//4
-		menu.addSeparator();
-			menuItem = new JMenuItem("Min. Value"); menuItem.addActionListener(this); menu.add(menuItem);								//5
+		menuItem = new JMenuItem("Send e-mail to:"); menuItem.addActionListener(this); menu.add(menuItem);										//3
+		menuItem = new JMenuItem("Delete send the email to:"); menuItem.addActionListener(this); menu.add(menuItem);							//4
+		menu.addSeparator();	
+			menuItem = new JMenuItem("Min. Value"); menuItem.addActionListener(this); menu.add(menuItem);										//5
 			submenu.add(menuItem);
-			menuItem = new JMenuItem("Max. Value"); menuItem.addActionListener(this); menu.add(menuItem);								//6
+			menuItem = new JMenuItem("Max. Value"); menuItem.addActionListener(this); menu.add(menuItem);										//6
 			submenu.add(menuItem);
 		menu.add(submenu);	
 		menu.addSeparator();	
-		menuItem = new JMenuItem("Every time a sample was taken"); menuItem.addActionListener(this); menu.add(menuItem);				//7
-		menuItem = new JMenuItem("Every time a sample file is sent"); menuItem.addActionListener(this); menu.add(menuItem);				//8	
-		menuItem = new JMenuItem("Every time a alert is sent"); menuItem.addActionListener(this); menu.add(menuItem);					//9
+		menuItem = new JMenuItem("Set acquisition timing:"); menuItem.addActionListener(this); menu.add(menuItem);								//7
+		menuItem = new JMenuItem("Set time interval to send records:"); menuItem.addActionListener(this); menu.add(menuItem);					//8	
+		menuItem = new JMenuItem("E-mail alert frequency:"); menuItem.addActionListener(this); menu.add(menuItem);								//9
 		menuBar.setBounds(40, 10, 70, 20);
 		add(menuBar);
 							
@@ -170,13 +143,54 @@ class Panel extends JPanel implements ActionListener{
 
 	    jTextAreaRepaint();
 	}
+	public void loadDataUsers() throws IOException {	
+		dataUsersLoad=makeFile.readDataUsersFile();
+		Object[] objDataUsers=dataUsersLoad.toArray();		
+		int lengthObjDataUsers=objDataUsers.length;
+		
+		if(lengthObjDataUsers>5) {
+			Sender=objDataUsers[0].toString();
+			Password=objDataUsers[1].toString();	
+			ToList.add(objDataUsers[2].toString());
+			
+			for(int i=3; i<lengthObjDataUsers-9; i++) {
+				ToList.add(objDataUsers[i].toString());
+			}
+			
+			MinValue=Integer.parseInt(objDataUsers[lengthObjDataUsers-9].toString());
+			MaxValue=Integer.parseInt(objDataUsers[lengthObjDataUsers-8].toString());		
+			samplesValor=Integer.parseInt(objDataUsers[lengthObjDataUsers-7].toString());
+			samplesUnit=objDataUsers[lengthObjDataUsers-6].toString();		
+			fileValor=Integer.parseInt(objDataUsers[lengthObjDataUsers-5].toString());
+			fileUnit=objDataUsers[lengthObjDataUsers-4].toString();
+			alertValor=Integer.parseInt(objDataUsers[lengthObjDataUsers-3].toString());
+			alertUnit=objDataUsers[lengthObjDataUsers-2].toString();
+		}
+	}
+	public void saveDataUsers() throws IOException {
+		dataUsersSave.add(Sender);
+		dataUsersSave.add(Password);
+		for (Iterator<String> iterator = ToList.iterator(); iterator.hasNext(); ) {		
+			String StringIterator = iterator.next();			
+			dataUsersSave.add(StringIterator);
+		}
+		dataUsersSave.add(Integer.toString(MinValue));
+		dataUsersSave.add(Integer.toString(MaxValue));		
+		dataUsersSave.add(Integer.toString(samples.getValor()));
+		dataUsersSave.add(samples.getStringTimeUnit());
+		dataUsersSave.add(Integer.toString(file.getValor()));
+		dataUsersSave.add(file.getStringTimeUnit());
+		dataUsersSave.add(Integer.toString(alert.getValor()));
+		dataUsersSave.add(alert.getStringTimeUnit());	
+		makeFile.writeDataUsersFile(dataUsersSave);
+	}
 	public void actionPerformed(ActionEvent e) {
 
 		JMenuItem source = (JMenuItem)(e.getSource());
 		StringItem=source.getText();
 		
 		//-----
-		if(StringItem.equals("Sending mail")){			
+		if(StringItem.equals("Send e-mail from:")){			
 			Sender = JOptionPane.showInputDialog("Sending mail");		
 			if(Sender != null && !Sender.equals("")) {
 				jTextAreaRepaint();
@@ -188,7 +202,7 @@ class Panel extends JPanel implements ActionListener{
 		//-----
 		
 		//-----
-		if(StringItem.equals("Password sending email")){			
+		if(StringItem.equals("E-mail password (sending account):")){			
 			Password = JOptionPane.showInputDialog("Password sending email");		
 			if(Password != null && !Password.equals("")) {
 				jTextAreaRepaint();
@@ -200,7 +214,7 @@ class Panel extends JPanel implements ActionListener{
 		//-----
 		
 		//------- 
-		if(StringItem.equals("Add email addresses to receive emails")){					
+		if(StringItem.equals("Send e-mail to:")){					
 			String email = JOptionPane.showInputDialog("Address to receive emails");
 			if(email != null && !email.equals("")) {
 				ToList.add(email);
@@ -210,7 +224,7 @@ class Panel extends JPanel implements ActionListener{
 		//------- 
 		
 		//---------
-		if(StringItem.equals("Delete email addresses to receive emails")){		
+		if(StringItem.equals("Delete send the email to:")){		
 			Object [] objetos = ToList.toArray ();			
 			Object obj10 = JOptionPane.showInputDialog(null,"Delete email addresses to receive emails", "CHOOSE", JOptionPane.QUESTION_MESSAGE, null, objetos,null);			
 			if(obj10!=null && !obj10.equals("")) {								
@@ -233,7 +247,7 @@ class Panel extends JPanel implements ActionListener{
 					MinValue= Integer.valueOf(MinValueString);
 					jTextAreaRepaint();
 				}catch(Exception q) {
-					JOptionPane.showMessageDialog(null, "Put a negative or positive integer", "ERROR", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(null, "Enter an integer value", "ERROR", JOptionPane.ERROR_MESSAGE);
 				}
 			}else {
 				MinValue=-9999999;
@@ -260,19 +274,19 @@ class Panel extends JPanel implements ActionListener{
 		//-----------
 		
 		//---------------
-		if(StringItem.equals("Every time a sample was taken")){				
+		if(StringItem.equals("Set acquisition timing:")){				
 			samples.setVisible(true);
 		}
 		//---------------
 		
 		//-----------------
-		if(StringItem.equals("Every time a sample file is sent")){
+		if(StringItem.equals("Set time interval to send records:")){
 			file.setVisible(true);
 		}
 		//-----------------
 		
 		//-----------------
-		if(StringItem.equals("Every time a alert is sent")){
+		if(StringItem.equals("E-mail alert frequency:")){
 			alert.setVisible(true);
 		}
 		//-----------------		
@@ -282,35 +296,35 @@ class Panel extends JPanel implements ActionListener{
 	public void jTextAreaRepaint() {		
 		jTextArea.selectAll();
 		jTextArea.replaceSelection("");
-		jTextArea.append("--------------Setting--------------" + "\n");		
+		jTextArea.append("--------------Settings--------------" + "\n");		
 		jTextArea.append("Your IP address is: " + host.getIPadress()  + ":" + port +"\n");		
 		if(Sender != null) {
-			jTextArea.append("Sending mail: " + Sender + "\n");	
+			jTextArea.append("Send e-mail from: " + Sender + "\n");	
 		}		
 		if(Password != null) {
-			jTextArea.append("Password mail: " + Password + "\n");	
+			jTextArea.append("E-mail password (sending account): " + Password + "\n");	
 		}
 		for (Object anObject: ToList) {
 			String theMyObject = (String) anObject;	
-			jTextArea.append("Address to receive emails: " + theMyObject + "\n");
+			jTextArea.append("Send e-mail to: " + theMyObject + "\n");
 		}	
 		if(MinValue != -9999999) {
-			jTextArea.append("Correct working interval. MinValue: " + MinValue +"\n");
+			jTextArea.append("Safe working interva. MinValue: " + MinValue + "°C" + "\n");
 		}	
 		
 		if(MaxValue != -9999999) {
-			jTextArea.append("Correct working interval. MaxValue: " + MaxValue +"\n");
+			jTextArea.append("Safe working interva MaxValue: " + MaxValue + "°C" + "\n");
 		}		
 		if(samples.getStringTimeUnit() != null && samples.getValor() !=0) {
-			jTextArea.append("Take a sample each : " + samples.getValor() + "    " + samples.getStringTimeUnit()  +"\n");
+			jTextArea.append("Set acquisition timing: " + samples.getValor() + "    " + samples.getStringTimeUnit()  +"\n");
 		}		
 		if(file.getStringTimeUnit() != null && file.getValor() !=0) {
-			jTextArea.append("Send one file each : " + file.getValor() + "    " + file.getStringTimeUnit() +"\n");
+			jTextArea.append("Set time interval to send records: " + file.getValor() + "    " + file.getStringTimeUnit() +"\n");
 		}
 		if(alert.getStringTimeUnit() != null && alert.getValor() !=0) {
-			jTextArea.append("Send one alert each : " + alert.getValor() + "    " + alert.getStringTimeUnit() +"\n");
+			jTextArea.append("E-mail alert frequency: " + alert.getValor() + "    " + alert.getStringTimeUnit() +"\n");
 		}		
-		jTextArea.append("--------------Setting--------------" + "\n");
+		jTextArea.append("--------------Settings--------------" + "\n");
 		jTextArea.append("" + "\n");	
 		reviewSettings();
 	}	
@@ -320,50 +334,50 @@ class Panel extends JPanel implements ActionListener{
 	public void reviewSettings() {
 		jTextArea.append("--------------Missing--------------" +"\n");		
 		if(Sender==null || Sender=="") {
-		jTextArea.append("Sending Mail" +"\n");
+		jTextArea.append("Send e-mail from: ?" +"\n");
 			r[0]=false;
 		}else {
 			r[0]=true;
 		}
 		if(Password==null || Password=="") {
-		jTextArea.append("Password Mail" +"\n");
+		jTextArea.append("E-mail password (sending account): ?" +"\n");
 			r[1]=false;
 		}else {
 			r[1]=true;
 		}
 		if(ToList.isEmpty()) {
-			jTextArea.append("Addresses to receive emails" +"\n");
+			jTextArea.append("Send e-mail to: ?" +"\n");
 			r[2]=false;
 		}else {
 			r[2]=true;
 		}	
 		if( MinValue==-9999999) {
-			jTextArea.append("Correct working interval. MinValue" +"\n");
+			jTextArea.append("Safe working interva. MinValue: ?" +"\n");
 			r[4]=false;
 		}else {
 			r[4]=true;
 		}		
 		if( MaxValue==-9999999) {
-			jTextArea.append("Correct working interval. MaxValue" +"\n");
+			jTextArea.append("Safe working interva MaxValue: ?" +"\n");
 			r[3]=false;
 		}else {
 			r[3]=true;
 		}
 		if(samples.getStringTimeUnit() == null  || samples.getValor()==0) {
-			jTextArea.append("Time a sample was taken" +"\n");
+			jTextArea.append("Set acquisition timing: ?" +"\n");
 			r[5]=false;
 		}else {
 			r[5]=true;
 		}
 		if(file.getStringTimeUnit() == null  || file.getValor()==0) {
-			jTextArea.append("Send a file every time" +"\n");
+			jTextArea.append("Set time interval to send records: ?" +"\n");
 			r[6]=false;
 		}else {
 			r[6]=true;
 		}
 		
 		if(alert.getStringTimeUnit() == null  || alert.getValor()==0) {
-			jTextArea.append("Send a alert every time" +"\n");
+			jTextArea.append("E-mail alert frequency: ?" +"\n");
 			r[7]=false;
 		}else {
 			r[7]=true;
@@ -386,10 +400,10 @@ class Panel extends JPanel implements ActionListener{
 	private class PopupWindows extends JFrame implements ActionListener, DocumentListener{
 
 		private static final long serialVersionUID = 1L;
-		private JRadioButton jRadioButtonSeconds=new JRadioButton("seconds", false); 
-		private JRadioButton jRadioButtonMinutes=new JRadioButton("minutes", false);
-		private JRadioButton jRadioButtonHours=new JRadioButton("hours", false);
-		private JRadioButton jRadioButtonDays=new JRadioButton("days", false);
+		private JRadioButton jRadioButtonSeconds; 
+		private JRadioButton jRadioButtonMinutes;
+		private JRadioButton jRadioButtonHours;
+		private JRadioButton jRadioButtonDays;
 		private ButtonGroup buttonGroup=new ButtonGroup();
 		private JPanel panel=new JPanel();;
 		private JLabel labelUnitis=new JLabel("    Put the number of units");
@@ -404,7 +418,28 @@ class Panel extends JPanel implements ActionListener{
 			setResizable(false);
 			setTitle(title);
 			this.uniTime=uniTime;
-			this.valor=valor;		
+			this.valor=valor;	
+			jtextfieldNumberOfUnits.setText(Integer.toString(valor));
+			if("SECONDS".equals(uniTime)) {
+				jRadioButtonSeconds=new JRadioButton("seconds", true);
+			}else {
+				jRadioButtonSeconds=new JRadioButton("seconds", false);
+			}
+			if("MINUTES".equals(uniTime)) {
+				jRadioButtonMinutes=new JRadioButton("minutes", true);
+			}else {
+				jRadioButtonMinutes=new JRadioButton("minutes", false);
+			}
+			if("HOURS".equals(uniTime)) {
+				jRadioButtonHours=new JRadioButton("hours", true);
+			}else {
+				jRadioButtonHours=new JRadioButton("hours", false);
+			}
+			if("DAYS".equals(uniTime)) {
+				jRadioButtonDays=new JRadioButton("days", true);
+			}else {
+				jRadioButtonDays=new JRadioButton("days", false);
+			}		
 			buttonGroup.add(jRadioButtonSeconds);
 			buttonGroup.add(jRadioButtonMinutes);
 			buttonGroup.add(jRadioButtonHours);
@@ -420,8 +455,8 @@ class Panel extends JPanel implements ActionListener{
 			jRadioButtonHours.addActionListener(this);
 			jRadioButtonDays.addActionListener(this);		
 			jtextfieldNumberOfUnits.addActionListener(this);			
-			jtextfieldNumberOfUnits.getDocument().addDocumentListener(this);		
-			add(panel);
+			jtextfieldNumberOfUnits.getDocument().addDocumentListener(this);				
+			add(panel);	
 		}	
 		public void actionPerformed(ActionEvent e) {		
 			if (e.getSource()==jRadioButtonSeconds) {
@@ -455,7 +490,7 @@ class Panel extends JPanel implements ActionListener{
 					valor= Integer.valueOf(string1);
 					jTextAreaRepaint();
 				}catch(Exception q) {
-					JOptionPane.showMessageDialog(null, "Put a positive integer", "ERROR", JOptionPane.ERROR_MESSAGE);						
+					JOptionPane.showMessageDialog(null, "Enter a positive integer", "ERROR", JOptionPane.ERROR_MESSAGE);						
 					SwingUtilities.invokeLater(new Runnable() {///////// Very good
 			            public void run() {
 			            	jtextfieldNumberOfUnits.setText("");
@@ -482,6 +517,9 @@ class Panel extends JPanel implements ActionListener{
 					ONOFF.setText("ON");			
 					flagONOFF=!flagONOFF;
 					try {
+						
+						saveDataUsers();////////////////////////////////////////////////////////////////////////
+						
 						executor=new Executor(Sender, Password, ToList, MaxValue, MinValue, samples.getStringTimeUnit(), 
 								samples.getValor(), file.getStringTimeUnit(), file.getValor(), alert.getStringTimeUnit(), alert.getValor(), jTextArea, makeFile, ValueLabel);
 						TEST.setEnabled(true);
@@ -525,6 +563,7 @@ class Executor {
 	private ReadThermocouple readThermocouple;
 	private int cont=0;
 	private JLabel ValueLabel;
+	private String Sender;
 	
 	public Executor(String Sender, String Password, List <String> ToList, int MaxValue, int MinValue, String sampleString, int sampleValue, 
 			String fileString, int fileValue, String alertString, int alertValue, JTextArea jTextArea, MakeFile makeFile, JLabel ValueLabel) throws IOException{
@@ -534,14 +573,14 @@ class Executor {
 		}
 		
 		mail=new Mail(Sender, Password);
-		
+		this.Sender=Sender;
 		this.ToList = ToList;	
 		this.MaxValue=MaxValue;
 		this.MinValue=MinValue;
 		this.jTextArea=jTextArea;
 		this.makeFile=makeFile;
 		this.ValueLabel=ValueLabel;
-		
+
 		schd = Executors.newScheduledThreadPool(3);
 		schd.scheduleAtFixedRate(new Samples(), 0, sampleValue, TimeUnit.valueOf(sampleString));		//Sample
 		schd.scheduleAtFixedRate(new Files(), fileValue, fileValue, TimeUnit.valueOf(fileString));		//Files
@@ -553,23 +592,23 @@ class Executor {
 	public void sendTestEmail(){
 		for(Object ee: ToList) {
 			String receiver=ee.toString();
-			String res=mail.sendMail(receiver, "Test", "Hello");
+			String res=mail.sendMail(receiver, "Test", "This is a e-mail sent from: " + Sender + " No action is required.");
 			if(res.equals("doneSendMail")) {
 				jTextArea.append(receiver + "\t" + "Test done" + "\n");
 			}else {
-				jTextArea.append(receiver + "\t" + "Test fail" + "\n");
+				jTextArea.append(receiver + "\t" + "Test failed" + "\n");
 			}				
 		}	
 	}
-	public void sendAlert() {	
+	public void sendAlert() throws IOException {	
 		if(cont>=1) {
 			for(Object ee: ToList) {
 				String receiver=ee.toString();
-				String res=mail.sendMail(receiver, "ALERT", "-ALERT-ALERT-ALERT-ALERT-");
+				String res=mail.sendMail(receiver, "Temperature ALERT!", "ALERT!! " + Sender + " has detected a temperature value out of the set working range. Current temperature is: " + getReadThermocoupleValue() + "°C");
 				if(res.equals("doneSendMail")) {
-					jTextArea.append(receiver + "\t" + "ALERT done" + "\n");
+					jTextArea.append(receiver + "\t" + "Alert done" + "\n");
 				}else {
-					jTextArea.append(receiver + "\t" + "ALERT fail" + "\n");
+					jTextArea.append(receiver + "\t" + "Alert failed" + "\n");
 				}				
 			}
 		}		
@@ -591,7 +630,7 @@ class Executor {
 		public void run() {
 			
 			try {
-				makeFile.writeFile(getReadThermocoupleValue());
+				makeFile.samplesWriteFile(getReadThermocoupleValue());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}						
@@ -614,7 +653,12 @@ class Executor {
 	//INTERCLASS+++++++++++++++++++++++++++++++++++++++++++++++++++++
 	private class AlertMail implements Runnable{
 		public void run() {
-			sendAlert();
+			try {
+				sendAlert();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}	
 	}	
 	//INTERCLASS+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -630,7 +674,7 @@ class Executor {
 					if(res.equals("doneSendFile")) {
 						jTextArea.append(receiver + "\t" + "Data File done" + "\n");
 					}else {
-						jTextArea.append(receiver + "\t" + "Data File fail" + "\n");
+						jTextArea.append(receiver + "\t" + "Data File failed" + "\n");
 					}
 				}
 			}else {			
@@ -641,7 +685,7 @@ class Executor {
 					if(res.equals("doneSendFile")) {
 						jTextArea.append(receiver + "\t" +  "Data File done" + "\n");
 					}else {
-						jTextArea.append(receiver + "\t" + "Data File fail" + "\n");
+						jTextArea.append(receiver + "\t" + "Data File failed" + "\n");
 					}
 				}
 			}
@@ -654,53 +698,98 @@ class Executor {
 //uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
 class MakeFile{
 	
-	private BufferedWriter bufferedWriter;
-	private FileWriter fileWriter;
-	private File file;
-	private String path;
-	private String nameFile;
-	
-	public MakeFile() throws IOException {
-		
+	private BufferedWriter SamplesbufferedWriter;
+	private FileWriter SamplesfileWriter;
+	private File Samplesfile;
+	private String Samplespath;
+	private String SamplesnameFile;
+	private BufferedReader DatabufferedReader;
+	private FileReader DatafileReader;
+	private List <String> dataFileReader = new ArrayList <String> ();
+	private BufferedWriter DatabufferedWriter;
+	private FileWriter DatafileWriter;
+	private Iterator<String> iterator;
+
+	public MakeFile() throws IOException {		
 		if(!System.getProperty("os.name").equals("Linux")) {	//estas en Win			
-			path="C:/Mail/";
+			Samplespath="C:/Mail/";
 		}else {
-			path="/home/pi/Desktop/Mail/";
+			Samplespath="/home/pi/Desktop/Mail/";
 		}
 	
-		nameFile=JOptionPane.showInputDialog(null, null, "File Name", JOptionPane.CLOSED_OPTION);			
-		file= new File(path + nameFile + ".txt");
+		SamplesnameFile=JOptionPane.showInputDialog(null, null, "File Name", JOptionPane.CLOSED_OPTION);			
+		Samplesfile= new File(Samplespath + SamplesnameFile + ".txt");
 	
-		file.setWritable(true);		
-		file.setExecutable(true);				
-		fileWriter=new FileWriter(file,true);
-		bufferedWriter=new BufferedWriter(fileWriter);
-		bufferedWriter.write(new Time().getDate() + "\n" + "\n");
-		bufferedWriter.newLine();
-		bufferedWriter.close();	
-		fileWriter.close();
+		Samplesfile.setWritable(true);		
+		Samplesfile.setExecutable(true);				
+		SamplesfileWriter=new FileWriter(Samplesfile,true);
+		SamplesbufferedWriter=new BufferedWriter(SamplesfileWriter);
+		SamplesbufferedWriter.write(new Time().getDate() + "\n" + "\n");
+		SamplesbufferedWriter.newLine();
+		SamplesbufferedWriter.close();	
+		SamplesfileWriter.close();		
 	}
-	public void writeFile(double value) throws IOException {
-		fileWriter=new FileWriter(file,true);
-		bufferedWriter=new BufferedWriter(fileWriter);
-		bufferedWriter.write(new Time().getTime() + "\t" + "\t" + value );
-		bufferedWriter.newLine();
-		bufferedWriter.close();	
-		fileWriter.close();
+	public void samplesWriteFile(double value) throws IOException {
+		SamplesfileWriter=new FileWriter(Samplesfile,true);
+		SamplesbufferedWriter=new BufferedWriter(SamplesfileWriter);
+		SamplesbufferedWriter.write(new Time().getTime() + "\t" + "\t" + value );
+		SamplesbufferedWriter.newLine();
+		SamplesbufferedWriter.close();	
+		SamplesfileWriter.close();
+	}
+	public List <String> readDataUsersFile() throws IOException {
+		DatafileReader=new FileReader(new File(Samplespath + "dataUsers" + ".txt"));
+		DatabufferedReader= new BufferedReader(DatafileReader);
+		String string;
+		do {
+			string=DatabufferedReader.readLine();
+			dataFileReader.add(string);
+		}while (string != null);
+		DatabufferedReader.close();
+		DatafileReader.close();	
+		return dataFileReader;
 	}	
+	public void writeDataUsersFile(List <String> data) throws IOException {		
+		DatafileWriter=new FileWriter(new File(Samplespath + "dataUsers" + ".txt"),false);
+		DatabufferedWriter=new BufferedWriter(DatafileWriter);		
+		String StringItratore;		
+		for (iterator =data.iterator(); iterator.hasNext(); ) {		
+			StringItratore = iterator.next();
+			if(StringItratore != null) {
+				DatabufferedWriter.write(StringItratore) ;
+				DatabufferedWriter.newLine();
+			}
+			else {
+				DatabufferedWriter.write("null") ;
+				DatabufferedWriter.newLine();
+			}
+			iterator.remove();		///salve Cesar
+		}
+		DatabufferedWriter.close();	
+		DatafileWriter.close();
+	}
 	public String getMakeFile() {
-		return nameFile;
+		return SamplesnameFile;
 	}
 }
 //uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu
 
 //*******************************************************************************************
-class MakeFolder{						
-	public MakeFolder() {
+class MakeFolder{
+
+	public MakeFolder() throws IOException {
 		if(!System.getProperty("os.name").equals("Linux")) {
 			File directorio = new File("C:/Mail");
 			if(!directorio.exists()) {
-				directorio.mkdirs();
+				directorio.mkdirs();				
+				File file=new File("C:/Mail/" + "dataUsers" + ".txt");						
+				file.setWritable(true);		
+				file.setExecutable(true);				
+				FileWriter fileWriter=new FileWriter(file,false);
+				BufferedWriter bufferedWriter=new BufferedWriter(fileWriter);
+				bufferedWriter.write("Data Users");
+				bufferedWriter.close();	
+				fileWriter.close();
 				JOptionPane.showMessageDialog(null, "A folder has been made in: C:/Mail",
 						"INFORMATION MESSAGE",JOptionPane.INFORMATION_MESSAGE);
 			}else {
@@ -710,7 +799,15 @@ class MakeFolder{
 		}else {									//estas en Linux
 			File directorio = new File("/home/pi/Desktop/Mail");
 			if(!directorio.exists()) {
-				directorio.mkdirs();
+				directorio.mkdirs();				
+				File file=new File("/home/pi/Desktop/Mail/" + "dataUsers" + ".txt");						
+				file.setWritable(true);		
+				file.setExecutable(true);				
+				FileWriter fileWriter=new FileWriter(file,false);
+				BufferedWriter bufferedWriter=new BufferedWriter(fileWriter);
+				bufferedWriter.write("Data Users");
+				bufferedWriter.close();	
+				fileWriter.close();
 				JOptionPane.showMessageDialog(null, "A folder has been made in: /home/pi/Desktop/Mail",
 						"INFORMATION MESSAGE",JOptionPane.INFORMATION_MESSAGE);
 			}else {
